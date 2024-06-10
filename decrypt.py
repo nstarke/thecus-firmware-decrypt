@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import pyDes, argparse, pathlib, magic
+import pyDes, argparse, pathlib, magic, threading
 
 MODELS = [
     'N2800',
@@ -74,15 +74,15 @@ MODELS = [
 PREFIX = 1024 * 1024
 
 def try_decrypt(data, passphrase):
-    if len(passphrase) > 8:
+    if len(passphrase) != 8:
         print('Invalid Passphrase')
         return None
-    # passphrase =  binascii.hexlify(str.encode(passphrase))
-    # passprhase = str.encode(passphrase)
     des = pyDes.des(passphrase, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_NORMAL)
-    decrypted = des.decrypt(data)
-    print(magic.from_buffer(decrypted))
-    return decrypted
+    result = des.decrypt(data)
+    if result and 'zip' in magic.from_buffer(result):
+        print("Key is: " + passphrase + ' ljust')
+        exit(0)
+    return result
 
 def main():
     parser = argparse.ArgumentParser(
@@ -121,44 +121,28 @@ def main():
         return
 
     print("Trying partial file decrypt")
+    active = []
     for model in models:
         print("Trying passphrase: " + model)
-        result = try_decrypt(data[:PREFIX], model.ljust(8, '\x00'))
-        if result and 'zip' in magic.from_buffer(result):
-            print("Key is: " + model + ' ljust')
-            exit(0)
-        result = try_decrypt(data[:PREFIX], model.rjust(8, '\x00'))
-        if result and 'zip' in magic.from_buffer(result):
-            print("Key is: " + model + ' rjust')
-            exit(0)
-        result = try_decrypt(data[:PREFIX], model.lower().ljust(8, '\x00'))
-        if result and 'zip'  in magic.from_buffer(result):
-            print("Key is: " + model + ' ljust lower')
-            exit(0)
-        result = try_decrypt(data[:PREFIX], model.lower().rjust(8, '\x00'))
-        if result and 'zip' in magic.from_buffer(result):
-            print("Key is: " + model + ' rjust lower')
-            exit(0)
+        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.ljust(8, '\x00'))))
+        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.rjust(8, '\x00'))))
+        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower().ljust(8, '\x00'))))
+        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower().rjust(8, '\x00'))))
     
     print("Trying full file decrypt")
+
+    for t in active:
+        t.join()
+    active = []
     for model in models:
         print("Trying passphrase: " + model)
-        result = try_decrypt(data, model.ljust(8, '\x00'))
-        if result and 'zip' in magic.from_buffer(result):
-            print("Key is: " + model + ' ljust')
-            exit(0)
-        result = try_decrypt(data, model.rjust(8, '\x00'))
-        if result and 'zip' in magic.from_buffer(result):
-            print("Key is: " + model + ' rjust')
-            exit(0)
-        result = try_decrypt(data, model.lower().rjust(8, '\x00'))
-        if result and 'zip' in magic.from_buffer(result):
-            print("Key is: " + model + ' ljust lower')
-            exit(0)
-        result = try_decrypt(data, model.lower().rjust(8, '\x00'))
-        if result and 'zip' in magic.from_buffer(result):
-            print("Key is: " + model + ' rjust lower')
-            exit(0)
+        active.append(threading.Thread(target=try_decrypt, args=(data, model.ljust(8, '\x00'))))
+        active.append(threading.Thread(target=try_decrypt, args=(data, model.rjust(8, '\x00'))))
+        active.append(threading.Thread(target=try_decrypt, args=(data, model.lower().ljust(8, '\x00'))))
+        active.append(threading.Thread(target=try_decrypt, args=(data, model.lower().rjust(8, '\x00'))))
+    
+    for t in active:
+        t.join()
     print('Failure to find a suitable key')
     exit(1)
 
