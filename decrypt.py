@@ -129,6 +129,8 @@ def main():
         active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower().ljust(8, '\x00'))))
         active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower().rjust(8, '\x00'))))
         for t in active:
+            t.start()
+        for t in active:
             t.join()
     print("Trying full file decrypt")
 
@@ -140,6 +142,8 @@ def main():
         active.append(threading.Thread(target=try_decrypt, args=(data, model.rjust(8, '\x00'))))
         active.append(threading.Thread(target=try_decrypt, args=(data, model.lower().ljust(8, '\x00'))))
         active.append(threading.Thread(target=try_decrypt, args=(data, model.lower().rjust(8, '\x00'))))
+        for t in active:
+            t.start()
         for t in active:
             t.join()
     print('Failure to find a suitable key')
