@@ -121,28 +121,27 @@ def main():
         return
 
     print("Trying partial file decrypt")
-    active = []
     for model in models:
+        active = []
         print("Trying passphrase: " + model)
         active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.ljust(8, '\x00'))))
         active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.rjust(8, '\x00'))))
         active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower().ljust(8, '\x00'))))
         active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower().rjust(8, '\x00'))))
-    
+        for t in active:
+            t.join()
     print("Trying full file decrypt")
 
-    for t in active:
-        t.join()
-    active = []
+    
     for model in models:
+        active = []
         print("Trying passphrase: " + model)
         active.append(threading.Thread(target=try_decrypt, args=(data, model.ljust(8, '\x00'))))
         active.append(threading.Thread(target=try_decrypt, args=(data, model.rjust(8, '\x00'))))
         active.append(threading.Thread(target=try_decrypt, args=(data, model.lower().ljust(8, '\x00'))))
         active.append(threading.Thread(target=try_decrypt, args=(data, model.lower().rjust(8, '\x00'))))
-    
-    for t in active:
-        t.join()
+        for t in active:
+            t.join()
     print('Failure to find a suitable key')
     exit(1)
 
