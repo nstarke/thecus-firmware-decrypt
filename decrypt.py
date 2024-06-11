@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-import pyDes, argparse, pathlib, magic, threading
-
+import pyDes, argparse, pathlib, magic, threading, subprocess, binascii
 MODELS = [
     'N2800',
     'N4800' ,
@@ -71,16 +70,19 @@ MODELS = [
     'N7510' 
 ]
 
-PREFIX = 1024 * 1024
+PREFIX = 1024 * 32
+
+def des_string_to_key(str_key):
+    out = subprocess.check_output("./string2key " + str_key, shell=True, text=True)
+    return binascii.unhexlify(out)
 
 def try_decrypt(data, passphrase):
-    if len(passphrase) != 8:
-        print('Invalid Passphrase')
-        return None
-    des = pyDes.des(passphrase, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None, padmode=pyDes.PAD_NORMAL)
+    key = des_string_to_key(passphrase)
+    des = pyDes.des(key, pyDes.CBC, b"\0\0\0\0\0\0\0\0", pad=None)
     result = des.decrypt(data)
-    if result and 'zip' in magic.from_buffer(result):
-        print("Key is: " + passphrase + ' ljust')
+    mtype = magic.from_buffer(result)
+    if result and 'zip' in mtype:
+        print("Key is: " + passphrase)
         exit(0)
     return result
 
@@ -101,33 +103,20 @@ def main():
     
     if args.try_key:
         print('Trying Passphrase: ' + args.try_key)
-        result = try_decrypt(data, args.try_key.rjust(8, '\x00'))
-        if magic.from_buffer(result) != 'data':
-            print("Key (RJUST): " + args.try_key + ' Successful!')
+        result = try_decrypt(data, args.try_key)
+        if 'zip' in magic.from_buffer(result):
+            print("Key: " + args.try_key + ' Successful!')
             with open(p.name + ".decrypted.bin", 'wb') as w:
                 w.write(result)
-            return
+            exit(0)
         else:
-            print("Key (RJUST): " + args.try_key + ' Unsuccessful.')
+            print("Key: " + args.try_key + ' Unsuccessful.')
         
-        result = try_decrypt(data, args.try_key.ljust(8, '\x00'))
-        if magic.from_buffer(result) != 'data':
-            print("Key (LJUST): " + args.try_key + ' Successful!')
-            with open(p.name + ".decrypted.bin", 'wb') as w:
-                w.write(result)
-            return
-        else:
-            print("Key (LJUST): " + args.try_key + ' Unsuccessful.')
-        return
-
     print("Trying partial file decrypt")
     for model in models:
         active = []
-        print("Trying passphrase: " + model)
-        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.ljust(8, '\x00'))))
-        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.rjust(8, '\x00'))))
-        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower().ljust(8, '\x00'))))
-        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower().rjust(8, '\x00'))))
+        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model)))
+        active.append(threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower())))
         for t in active:
             t.start()
         for t in active:
@@ -138,10 +127,8 @@ def main():
     for model in models:
         active = []
         print("Trying passphrase: " + model)
-        active.append(threading.Thread(target=try_decrypt, args=(data, model.ljust(8, '\x00'))))
-        active.append(threading.Thread(target=try_decrypt, args=(data, model.rjust(8, '\x00'))))
-        active.append(threading.Thread(target=try_decrypt, args=(data, model.lower().ljust(8, '\x00'))))
-        active.append(threading.Thread(target=try_decrypt, args=(data, model.lower().rjust(8, '\x00'))))
+        active.append(threading.Thread(target=try_decrypt, args=(data, model)))
+        active.append(threading.Thread(target=try_decrypt, args=(data, model.lower())))
         for t in active:
             t.start()
         for t in active:
