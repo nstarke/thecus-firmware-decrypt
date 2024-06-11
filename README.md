@@ -1,6 +1,6 @@
 # Introduction
 
-In 2018, I did some research into decrypting [thecus nas devices] and posted a [poorly assembled gist](https://gist.github.com/nstarke/eaba741a99049430bdcb74f1b4ebc651).  
+In 2018, I did some research into decrypting [thecus nas devices](https://www.thecus.com/) and posted a [poorly assembled gist](https://gist.github.com/nstarke/eaba741a99049430bdcb74f1b4ebc651).  
 
 This repository contains a more standardized version of the source code.
 
