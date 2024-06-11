@@ -28,3 +28,13 @@ python3 decrypt.py -t N16000 $FILENAME
 Where `N16000` is an example of the key returned in the output of step 2
 
 Enjoy!
+
+# Step 4: decrypt with openssl
+
+The pyDes implementation used in this script is very, very slow.  If you want to decrypt faster, you can use openssl:
+
+```
+OPENSSL_CONF=openssl_legacy.cnf openssl des-cbc -d -in $FILENAME -out $FILENAME.decrypted.bin -iv 00000000000000000 -K $(./string2key N16000) -nopad -nosalt
+```
+
+The OPENSSL_CONF file provided with this cnf file enables legacy ciphers, such as DES-CBC.  I highly recommend not adding this to your standard openssl.cnf file.
