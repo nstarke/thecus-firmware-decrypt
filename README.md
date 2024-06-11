@@ -25,6 +25,6 @@ This will output the proper key, which you will then use in step 3
 python3 decrypt.py -t N16000 $FILENAME
 ```
 
-Where `N16000` is the key returned in the output of step 2
+Where `N16000` is an example of the key returned in the output of step 2
 
 Enjoy!
