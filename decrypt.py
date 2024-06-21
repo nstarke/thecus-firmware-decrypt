@@ -179,10 +179,10 @@ def main():
     print("Trying partial file decrypt")
     for model in models:
         active = [
-            threading.Thread(target=try_decrypt, args=(data[:PREFIX], model)),
-            threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower()))
+            threading.Thread(target=try_decrypt, args=(data[:PREFIX], model)).start(),
+            threading.Thread(target=try_decrypt, args=(data[:PREFIX], model.lower())).start() 
         ]
-        [t.start() for t in active]
+
         for t in active:
             t.join()
             if t.result['success']:
